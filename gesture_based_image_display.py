@@ -188,3 +188,21 @@ def main():
                     connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 255), thickness=2)
                 )
         current_gesture = detected_gesture
+
+        cv2.putText(image, f"Gesture: {current_gesture.upper()}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+
+        current_image = gesture_images[current_gesture]
+
+        display_image = cv2.resize(current_image, (image.shape[1], image.shape[0]))
+        combined_display = np.hstack((image, display_image))
+        cv2.imshow('Monkey Gestures', combined_display)
+
+        if cv2.waitKey(5) & 0xFF == 27:
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    main()
