@@ -79,10 +79,10 @@ def is_winking(face_landmarks):
     if not face_landmarks:
         return False
 
-    RIGHT_EYE = [33, 160, 158, 133, 153, 144]
-    LEFT_EYE = [362, 385, 387, 263, 373, 380]
-    ear_right = eye_aspect_ratio(RIGHT_EYE, face_landmarks)
-    ear_left = eye_aspect_ratio(LEFT_EYE, face_landmarks)
+    right_eye = [33, 160, 158, 133, 153, 144]
+    left_eye = [362, 385, 387, 263, 373, 380]
+    ear_right = eye_aspect_ratio(right_eye, face_landmarks)
+    ear_left = eye_aspect_ratio(left_eye, face_landmarks)
 
     wink_ratio = 1.8
     ear_threshold = 0.22
@@ -120,3 +120,71 @@ def is_thinking(hand_landmarks, face_landmarks):
 
     proximity_threshold = 0.08
     return distance < proximity_threshold
+
+def main():
+    cap = cv2.VideoCapture(0)
+    current_gesture = "neutral"
+
+    while cap.isOpened():
+        success, image = cap.read()
+        if not success:
+            print("Ignoring empty camera frame.")
+            continue
+
+        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+        image.flags.writeable = False
+        hand_results = hands.process(image)
+        face_results = face_mesh.process(image)
+        image.flags.writeable = True
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        detected_gesture = "neutral"
+
+        if hand_results.multi_hand_landmarks:
+            for hand_landmarks in hand_results.multi_hand_landmarks:
+                if face_results.multi_face_landmarks:
+                    for face_landmarks in face_results.multi_face_landmarks:
+                        if is_thinking(hand_landmarks, face_landmarks):
+                            detected_gesture = "think"
+
+                if detected_gesture == "neutral":
+                    finger_status = get_finger_status(hand_landmarks)
+                    thumb, index, middle, ring, pinky = finger_status
+                    if not thumb and index and not middle and not ring and not pinky:
+                        detected_gesture = "idea"
+                    elif not thumb and not index and middle and not ring and not pinky:
+                        detected_gesture = "middle_finger"
+                    elif thumb and not index and not middle and not ring and pinky:
+                        detected_gesture = "phone"
+
+        if detected_gesture == "neutral" and face_results.multi_face_landmarks:
+            for face_landmarks in face_results.multi_face_landmarks:
+                if is_winking(face_landmarks):
+                    detected_gesture = "wink"
+                elif is_surprised(face_landmarks):
+                    detected_gesture = "surprised"
+
+        if hand_results.multi_hand_landmarks:
+            for hand_landmarks in hand_results.multi_hand_landmarks:
+                mp_drawing.draw_landmarks(
+                    image, hand_landmarks, mp_hands.hand_connections)
+
+        if face_results.multi_face_landmarks:
+            for face_landmarks in face_results.multi_face_landmarks:
+                # Full face mesh in cyan
+                mp_drawing.draw_landmarks(
+                    image=image,
+                    landmark_list=face_landmarks,
+                    connections=mp_face_mesh.facemesh_tesselation,
+                    landmark_drawing_spec=None,
+                    connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 0), thickness=1)
+                )
+                # Face outline in white
+                mp_drawing.draw_landmarks(
+                    image=image,
+                    landmark_list=face_landmarks,
+                    connections=mp_face_mesh.FACEMESH_CONTOURS,
+                    landmark_drawing_spec=None,
+                    connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 255), thickness=2)
+                )
+        current_gesture = detected_gesture
