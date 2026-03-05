@@ -167,7 +167,7 @@ def main():
         if hand_results.multi_hand_landmarks:
             for hand_landmarks in hand_results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
-                    image, hand_landmarks, mp_hands.hand_connections)
+                    image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
         if face_results.multi_face_landmarks:
             for face_landmarks in face_results.multi_face_landmarks:
@@ -175,7 +175,7 @@ def main():
                 mp_drawing.draw_landmarks(
                     image=image,
                     landmark_list=face_landmarks,
-                    connections=mp_face_mesh.facemesh_tesselation,
+                    connections=mp_face_mesh.FACEMESH_TESSELATION,
                     landmark_drawing_spec=None,
                     connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 0), thickness=1)
                 )
